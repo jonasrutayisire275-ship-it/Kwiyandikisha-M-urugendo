@@ -1,0 +1,7 @@
+.
+├── server.js              # Express backend server
+├── package.json           # Dependencies
+├── .env                   # Environment variables
+└── public/
+    ├── form.html          # User form
+    ├── admin.html         # Admin dashboard
