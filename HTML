@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Information Form</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 500px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select,
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        select:focus,
+        input[type="file"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+        }
+
+        input[type="file"] {
+            padding: 8px;
+        }
+
+        .form-group.checkbox {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .form-group.checkbox input[type="radio"] {
+            width: auto;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .form-group.checkbox label {
+            margin-bottom: 0;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-weight: normal;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            margin-top: 8px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+        }
+
+        .radio-option input[type="radio"] {
+            margin-right: 8px;
+            cursor: pointer;
+        }
+
+        .radio-option label {
+            margin-bottom: 0;
+            cursor: pointer;
+            font-weight: normal;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 13px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .success-message {
+            color: #27ae60;
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 20px;
+            display: none;
+            background: #d4edda;
+            padding: 12px;
+            border-radius: 5px;
+            border: 1px solid #c3e6cb;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .admin-link {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .admin-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .admin-link a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 25px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>User Information Form</h1>
+        
+        <div class="success-message" id="successMessage">
+            ✓ Form submitted successfully!
+        </div>
+
+        <div class="loading" id="loadingIndicator">
+            <span class="spinner"></span>
+            <span>Submitting...</span>
+        </div>
+
+        <form id="userForm">
+            <!-- First Name -->
+            <div class="form-group">
+                <label for="firstName">First Name *</label>
+                <input 
+                    type="text" 
+                    id="firstName" 
+                    name="firstName" 
+                    placeholder="Enter your first name"
+                    required
+                >
+                <div class="error-message" id="firstNameError"></div>
+            </div>
+
+            <!-- Second Name -->
+            <div class="form-group">
+                <label for="secondName">Second Name *</label>
+                <input 
+                    type="text" 
+                    id="secondName" 
+                    name="secondName" 
+                    placeholder="Enter your second name"
+                    required
+                >
+                <div class="error-message" id="secondNameError"></div>
+            </div>
+
+            <!-- Gender -->
+            <div class="form-group">
+                <label>Gender *</label>
+                <div class="radio-group">
+                    <div class="radio-option">
+                        <input 
+                            type="radio" 
+                            id="male" 
+                            name="gender" 
+                            value="Male"
+                            required
+                        >
+                        <label for="male">Male</label>
+                    </div>
+                    <div class="radio-option">
+                        <input 
+                            type="radio" 
+                            id="female" 
+                            name="gender" 
+                            value="Female"
+                            required
+                        >
+                        <label for="female">Female</label>
+                    </div>
+                    <div class="radio-option">
+                        <input 
+                            type="radio" 
+                            id="other" 
+                            name="gender" 
+                            value="Other"
+                            required
+                        >
+                        <label for="other">Other</label>
+                    </div>
+                </div>
+                <div class="error-message" id="genderError"></div>
+            </div>
+
+            <!-- Age -->
+            <div class="form-group">
+                <label for="age">Age *</label>
+                <input 
+                    type="number" 
+                    id="age" 
+                    name="age" 
+                    placeholder="Enter your age"
+                    min="1"
+                    max="150"
+                    required
+                >
+                <div class="error-message" id="ageError"></div>
+            </div>
+
+            <!-- Job/Interest -->
+            <div class="form-group">
+                <label for="jobInterest">Job/Interest *</label>
+                <input 
+                    type="text" 
+                    id="jobInterest" 
+                    name="jobInterest" 
+                    placeholder="Enter your job or interest"
+                    required
+                >
+                <div class="error-message" id="jobInterestError"></div>
+            </div>
+
+            <!-- File Upload -->
+            <div class="form-group">
+                <label for="fileUpload">Upload Document (Optional)</label>
+                <input 
+                    type="file" 
+                    id="fileUpload" 
+                    name="fileUpload"
+                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt"
+                >
+                <div class="error-message" id="fileUploadError"></div>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit">Submit</button>
+        </form>
+
+        <div class="admin-link">
+            <a href="/admin">📊 View Admin Dashboard</a>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('userForm');
+        const successMessage = document.getElementById('successMessage');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Clear previous messages
+            successMessage.style.display = 'none';
+            clearErrors();
+
+            // Validate form
+            if (!validateForm()) {
+                return;
+            }
+
+            // Show loading indicator
+            loadingIndicator.style.display = 'block';
+
+            try {
+                // Create FormData object to handle file upload
+                const formData = new FormData(form);
+
+                // Submit form data to local backend
+                const response = await fetch('/api/submit', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Success
+                    successMessage.style.display = 'block';
+                    form.reset();
+                    
+                    // Hide success message after 5 seconds
+                    setTimeout(() => {
+                        successMessage.style.display = 'none';
+                    }, 5000);
+                } else {
+                    showError(data.error || 'An error occurred. Please try again.');
+                }
+            } catch (error) {
+                showError('Failed to submit form. Please check your connection and try again.');
+                console.error('Network error:', error);
+            } finally {
+                // Hide loading indicator
+                loadingIndicator.style.display = 'none';
+            }
+        });
+
+        function validateForm() {
+            let isValid = true;
+            const firstName = document.getElementById('firstName').value.trim();
+            const secondName = document.getElementById('secondName').value.trim();
+            const gender = document.querySelector('input[name="gender"]:checked');
+            const age = document.getElementById('age').value;
+            const jobInterest = document.getElementById('jobInterest').value.trim();
+            const fileUpload = document.getElementById('fileUpload').files[0];
+
+            // Validate First Name
+            if (!firstName) {
+                showFieldError('firstName', 'First name is required');
+                isValid = false;
+            } else if (firstName.length < 2) {
+                showFieldError('firstName', 'First name must be at least 2 characters');
+                isValid = false;
+            }
+
+            // Validate Second Name
+            if (!secondName) {
+                showFieldError('secondName', 'Second name is required');
+                isValid = false;
+            } else if (secondName.length < 2) {
+                showFieldError('secondName', 'Second name must be at least 2 characters');
+                isValid = false;
+            }
+
+            // Validate Gender
+            if (!gender) {
+                showFieldError('gender', 'Please select a gender');
+                isValid = false;
+            }
+
+            // Validate Age
+            if (!age) {
+                showFieldError('age', 'Age is required');
+                isValid = false;
+            } else if (age < 1 || age > 150) {
+                showFieldError('age', 'Please enter a valid age between 1 and 150');
+                isValid = false;
+            }
+
+            // Validate Job/Interest
+            if (!jobInterest) {
+                showFieldError('jobInterest', 'Job/Interest is required');
+                isValid = false;
+            } else if (jobInterest.length < 2) {
+                showFieldError('jobInterest', 'Job/Interest must be at least 2 characters');
+                isValid = false;
+            }
+
+            // Validate File Upload (optional but check size if provided)
+            if (fileUpload) {
+                const maxSize = 5 * 1024 * 1024; // 5MB
+                if (fileUpload.size > maxSize) {
+                    showFieldError('fileUpload', 'File size must be less than 5MB');
+                    isValid = false;
+                }
+            }
+
+            return isValid;
+        }
+
+        function showFieldError(fieldName, message) {
+            const errorElement = document.getElementById(fieldName + 'Error');
+            if (errorElement) {
+                errorElement.textContent = message;
+                errorElement.style.display = 'block';
+            }
+        }
+
+        function showError(message) {
+            alert(message);
+        }
+
+        function clearErrors() {
+            const errorElements = document.querySelectorAll('.error-message');
+            errorElements.forEach(element => {
+                element.style.display = 'none';
+                element.textContent = '';
+            });
+        }
+
+        // Clear error on input change
+        form.querySelectorAll('input, select').forEach(field => {
+            field.addEventListener('change', () => {
+                const errorElement = document.getElementById(field.name + 'Error');
+                if (errorElement) {
+                    errorElement.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
