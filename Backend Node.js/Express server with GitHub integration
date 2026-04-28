@@ -1,0 +1,229 @@
+const express = require('express');
+const multer = require('multer');
+const { Octokit } = require('@octokit/rest');
+const cors = require('cors');
+const path = require('path');
+require('dotenv').config();
+
+const app = express();
+const upload = multer({ storage: multer.memoryStorage() });
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.static('public'));
+
+// Initialize GitHub API
+const octokit = new Octokit({
+  auth: process.env.GITHUB_TOKEN
+});
+
+const GITHUB_OWNER = 'jonasrutayisire275-ship-itcan';
+const GITHUB_REPO = 'Kwiyandikisha-M-urugendo';
+const SUBMISSIONS_LABEL = 'form-submission';
+
+// Store submissions data
+let submissions = [];
+
+// Load existing submissions from GitHub issues
+async function loadSubmissionsFromGitHub() {
+  try {
+    const issues = await octokit.rest.issues.listForRepo({
+      owner: GITHUB_OWNER,
+      repo: GITHUB_REPO,
+      labels: SUBMISSIONS_LABEL,
+      state: 'all',
+      per_page: 100
+    });
+
+    submissions = issues.data.map(issue => {
+      try {
+        const body = issue.body;
+        const submission = {
+          id: issue.number,
+          title: issue.title,
+          createdAt: issue.created_at,
+          updatedAt: issue.updated_at,
+          issueUrl: issue.html_url
+        };
+
+        // Parse body to extract details
+        const firstNameMatch = body.match(/\*\*First Name:\*\*\s*(.+)/);
+        const secondNameMatch = body.match(/\*\*Second Name:\*\*\s*(.+)/);
+        const genderMatch = body.match(/\*\*Gender:\*\*\s*(.+)/);
+        const ageMatch = body.match(/\*\*Age:\*\*\s*(\d+)/);
+        const jobMatch = body.match(/\*\*Job\/Interest:\*\*\s*(.+)/);
+        const submittedMatch = body.match(/\*\*Submitted At:\*\*\s*(.+)/);
+        const fileMatch = body.match(/\*\*File:\*\*\s*\[(.+?)\]\((.+?)\)/);
+
+        submission.firstName = firstNameMatch ? firstNameMatch[1].trim() : 'N/A';
+        submission.secondName = secondNameMatch ? secondNameMatch[1].trim() : 'N/A';
+        submission.gender = genderMatch ? genderMatch[1].trim() : 'N/A';
+        submission.age = ageMatch ? parseInt(ageMatch[1]) : 'N/A';
+        submission.jobInterest = jobMatch ? jobMatch[1].trim() : 'N/A';
+        submission.submittedAt = submittedMatch ? submittedMatch[1].trim() : 'N/A';
+        submission.fileName = fileMatch ? fileMatch[1] : 'No file';
+        submission.fileUrl = fileMatch ? fileMatch[2] : '';
+
+        return submission;
+      } catch (e) {
+        console.error('Error parsing issue:', e);
+        return null;
+      }
+    }).filter(Boolean);
+
+    console.log(`Loaded ${submissions.length} submissions from GitHub`);
+  } catch (error) {
+    console.error('Error loading submissions from GitHub:', error.message);
+  }
+}
+
+// Form submission endpoint
+app.post('/api/submit', upload.single('fileUpload'), async (req, res) => {
+  try {
+    const { firstName, secondName, gender, age, jobInterest } = req.body;
+
+    // Validation
+    if (!firstName || !secondName || !gender || !age || !jobInterest) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Prepare submission data
+    const submissionData = {
+      firstName: firstName.trim(),
+      secondName: secondName.trim(),
+      gender,
+      age: parseInt(age),
+      jobInterest: jobInterest.trim(),
+      submittedAt: new Date().toISOString(),
+      fileUploaded: req.file ? true : false,
+      fileName: req.file ? req.file.originalname : null,
+      fileSize: req.file ? req.file.size : null
+    };
+
+    // Create GitHub issue
+    let fileUrl = 'No file uploaded';
+    if (req.file) {
+      try {
+        const fileResponse = await octokit.rest.repos.createOrUpdateFileContents({
+          owner: GITHUB_OWNER,
+          repo: GITHUB_REPO,
+          path: `submissions/${Date.now()}_${req.file.originalname}`,
+          message: `Upload file from ${firstName} ${secondName}`,
+          content: req.file.buffer.toString('base64'),
+          committer: {
+            name: 'Form Submission Bot',
+            email: 'bot@example.com'
+          }
+        });
+        fileUrl = fileResponse.data.content.html_url;
+      } catch (fileError) {
+        console.error('File upload error:', fileError.message);
+        fileUrl = 'File upload failed';
+      }
+    }
+
+    // Create issue title and body
+    const issueTitle = `Form Submission: ${firstName} ${secondName}`;
+    const issueBody = `**Submission Details:**
+
+**First Name:** ${submissionData.firstName}
+**Second Name:** ${submissionData.secondName}
+**Gender:** ${submissionData.gender}
+**Age:** ${submissionData.age}
+**Job/Interest:** ${submissionData.jobInterest}
+**Submitted At:** ${submissionData.submittedAt}
+**File:** [${submissionData.fileName || 'No file'}](${fileUrl})
+
+---
+*This issue was automatically created by the Form Submission System*`;
+
+    // Create issue in GitHub
+    const issue = await octokit.rest.issues.create({
+      owner: GITHUB_OWNER,
+      repo: GITHUB_REPO,
+      title: issueTitle,
+      body: issueBody,
+      labels: [SUBMISSIONS_LABEL]
+    });
+
+    submissionData.id = issue.data.number;
+    submissionData.fileUrl = fileUrl;
+    submissions.push(submissionData);
+
+    res.json({
+      success: true,
+      message: 'Form submitted successfully!',
+      submission: submissionData,
+      issueUrl: issue.data.html_url
+    });
+
+  } catch (error) {
+    console.error('Submission error:', error);
+    res.status(500).json({
+      error: 'Failed to submit form',
+      details: error.message
+    });
+  }
+});
+
+// Get all submissions endpoint
+app.get('/api/submissions', async (req, res) => {
+  try {
+    await loadSubmissionsFromGitHub();
+    res.json({
+      success: true,
+      count: submissions.length,
+      submissions: submissions.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))
+    });
+  } catch (error) {
+    console.error('Error fetching submissions:', error);
+    res.status(500).json({
+      error: 'Failed to fetch submissions',
+      details: error.message
+    });
+  }
+});
+
+// Get single submission endpoint
+app.get('/api/submissions/:id', async (req, res) => {
+  try {
+    const submission = submissions.find(s => s.id === parseInt(req.params.id));
+    if (!submission) {
+      return res.status(404).json({ error: 'Submission not found' });
+    }
+    res.json({
+      success: true,
+      submission
+    });
+  } catch (error) {
+    console.error('Error fetching submission:', error);
+    res.status(500).json({ error: 'Failed to fetch submission' });
+  }
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'Server is running' });
+});
+
+// Serve admin dashboard
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+// Serve form
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'form.html'));
+});
+
+// Start server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, async () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Form available at http://localhost:${PORT}/`);
+  console.log(`Admin dashboard available at http://localhost:${PORT}/admin`);
+  
+  // Load submissions on startup
+  await loadSubmissionsFromGitHub();
+});
